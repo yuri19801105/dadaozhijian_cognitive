@@ -1,0 +1,37 @@
+# dadaozhijian_cognitive — systemd 单元（单服务免容器部署方案）
+#
+# 适用：单台裸机/VM 长驻单个原生进程。比容器更轻、无运行时开销、日志直送 journald。
+# 前置：先在构建机 `mojo build -I . -I core observability/store_demo.mojo -o /usr/local/bin/dadaozhijian`
+#       （或任意指定 ENTRY），并 `cp config/defaults.toml /etc/dadaozhijian/`。
+#
+# 安装：
+#   sudo cp dadaozhijian.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now dadaozhijian
+# 查看：sudo journalctl -u dadaozhijian -f
+
+[Unit]
+Description=大道之剑 认知架构运行时 (dadaozhijian_cognitive)
+Documentation=https://github.com/<org>/dadaozhijian_cognitive/docs/architecture-modular-plan.md
+After=network.target
+# 如依赖外部 LLM 网关/对象存储，按需加 Requires= / After=
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/dadaozhijian
+# 配置外置（运行期免重编译）
+Environment=CONFIG_PATH=/etc/dadaozhijian/defaults.toml
+# shifang 真实 LLM 侧车需 python3 在 PATH（systemd 默认 PATH 已含 /usr/bin）
+Restart=on-failure
+RestartSec=3
+# 资源护栏（按实测内存基准设上限，超阈即重启而非 OOM 拖垮宿主）
+MemoryMax=512M
+# 优雅退出：SIGTERM 后给 10s 收敛回灌
+TimeoutStopSec=10
+# 结构化日志已统一走 observability/logging，journald 可检索
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dadaozhijian
+
+[Install]
+WantedBy=multi-user.target

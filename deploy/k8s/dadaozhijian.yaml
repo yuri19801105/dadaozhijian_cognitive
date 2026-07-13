@@ -1,0 +1,253 @@
+# =============================================================================
+# dadaozhijian-cognitive — Kubernetes 部署模板（infra-free，含占位符）
+# -----------------------------------------------------------------------------
+# 设计依据（GitHub/全网调研最优解，对应「不可能所有都容器化」原则）：
+#   1. Mojo 1.0.0b2 默认产出 *静态链接* 二进制（`mojo build` 静态链接 stdlib，
+#      help 无 --static-link-stdlib 旗标），故镜像只需多阶段把 ~4GB 编译器
+#      压成 ~300–500MB 运行期镜像（见 deploy/Dockerfile）。
+#   2. Mojo 无原生 HTTP 服务 → 可观测性走 node_exporter textfile 模式：
+#      服务二进制把 observability.Metrics.to_prometheus() 写入共享卷的 .prom
+#      文件，同 Pod 的 node-exporter sidecar 定时抓取。无需在 Mojo 内起 HTTP。
+#   3. 容器化只是「多服务编排」的可选分支；单实例用 systemd/supervisord 更轻
+#      （见 deploy/systemd、deploy/supervisord.conf）。本模板用于需要水平扩缩/
+#      自愈/Prometheus 服务发现的场景。
+#
+# 使用前请将 ${} 占位符替换为真实值，并确保镜像仓库/Secret 已就绪。
+# 应用端口、metrics 路径等以 env 注入，便于不改镜像重配置。
+# =============================================================================
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dadaozhijian
+  labels:
+    app.kubernetes.io/part-of: dadaozhijian-cognitive
+---
+# 运行时敏感配置（如 LLM_API_KEY）通过 Secret 注入，不进镜像/ConfigMap。
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dadaozhijian-secrets
+  namespace: dadaozhijian
+type: Opaque
+stringData:
+  LLM_API_KEY: "${LLM_API_KEY}"          # TODO: 替换或由外部密钥管理(Sealed Secrets/Vault)注入
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dadaozhijian-config
+  namespace: dadaozhijian
+data:
+  # 服务把 .prom 写到此路径（与 node-exporter 的 textfile 目录共享同一 emptyDir）。
+  METRICS_PROM_PATH: "/var/lib/node_exporter/dadaozhijian.prom"
+  APP_PORT: "8080"                        # 认知服务端口（如二进制暴露 gRPC/CLI 服务则启用）
+  LOG_LEVEL: "INFO"
+  # 回灌/健康度配置（可被 Config 加载）
+  SNAPSHOT_EVERY: "5"
+  ENERGY_BUDGET: "1.0"
+  FEEDBACK_THRESHOLD: "0.8"
+  BACKFILL_BUDGET_MS: "20"
+  HEALTH_FAIL_THRESHOLD: "5"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dadaozhijian
+  namespace: dadaozhijian
+  labels:
+    app: dadaozhijian
+    app.kubernetes.io/version: "${TAG}"
+    app.kubernetes.io/managed-by: "kustomize"
+spec:
+  replicas: 1                            # TODO: 按负载调整；如需水平扩缩用 HPA
+  selector:
+    matchLabels:
+      app: dadaozhijian
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: dadaozhijian
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        # ---- 主服务：认知引擎静态二进制 ----
+        - name: app
+          image: "${REGISTRY}/dadaozhijian:${TAG}"   # TODO: 替换镜像引用
+          imagePullPolicy: IfNotPresent
+          command: ["/app/dadaozhijian"]
+          args: ["--serve"]                     # 由二进制决定：若提供 --serve 则常驻；否则一次性跑完退出
+          envFrom:
+            - configMapRef:
+                name: dadaozhijian-config
+          env:
+            - name: LLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dadaozhijian-secrets
+                  key: LLM_API_KEY
+            - name: RUST_BACKTRACE
+              value: "1"
+          # 健康检查：liveness/readiness 均调用 ops/healthcheck.sh
+          livenessProbe:
+            exec:
+              command: ["/app/ops/healthcheck.sh"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command: ["/app/ops/healthcheck.sh", "--ready"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          # 服务主循环周期性调用 observability.Metrics.to_prometheus() 写入
+          #   $METRICS_PROM_PATH（本仓库后续把该调用接入服务 main 即可启用）。
+          volumeMounts:
+            - name: node-exporter-textfiles
+              mountPath: /var/lib/node_exporter
+            - name: config-volume
+              mountPath: /app/config
+              readOnly: true
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2000m"
+              memory: "4Gi"
+        # ---- 可观测性 sidecar：node-exporter textfile 采集 ----
+        # 只读共享卷里的 .prom，暴露 /metrics 供 Prometheus 抓取（标准服务发现）。
+        - name: node-exporter
+          image: prom/node-exporter:v1.8.2
+          args:
+            - "--collector.textfile.directory=/var/lib/node_exporter"
+            - "--no-collector.systemd"     # 容器内无 systemd，关掉以免报错
+            - "--web.listen-address=:9100"
+          volumeMounts:
+            - name: node-exporter-textfiles
+              mountPath: /var/lib/node_exporter
+              readOnly: true
+          ports:
+            - name: metrics
+              containerPort: 9100
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 9100
+            initialDelaySeconds: 10
+            periodSeconds: 30
+      volumes:
+        # 主服务写、node-exporter 读的共享目录。生产可换为 PVC 以便重启保留历史。
+        - name: node-exporter-textfiles
+          emptyDir: {}
+        - name: config-volume
+          configMap:
+            name: dadaozhijian-config
+            items:
+              - key: METRICS_PROM_PATH
+                path: METRICS_PROM_PATH
+              - key: APP_PORT
+                path: APP_PORT
+              - key: LOG_LEVEL
+                path: LOG_LEVEL
+              - key: SNAPSHOT_EVERY
+                path: SNAPSHOT_EVERY
+              - key: ENERGY_BUDGET
+                path: ENERGY_BUDGET
+              - key: FEEDBACK_THRESHOLD
+                path: FEEDBACK_THRESHOLD
+              - key: BACKFILL_BUDGET_MS
+                path: BACKFILL_BUDGET_MS
+              - key: HEALTH_FAIL_THRESHOLD
+                path: HEALTH_FAIL_THRESHOLD
+---
+# 把认知服务（可选）与 node-exporter /metrics 暴露出去。
+apiVersion: v1
+kind: Service
+metadata:
+  name: dadaozhijian
+  namespace: dadaozhijian
+  labels:
+    app: dadaozhijian
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9100"
+spec:
+  selector:
+    app: dadaozhijian
+  ports:
+    - name: metrics
+      port: 9100
+      targetPort: 9100
+    - name: app
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP                       # 外部暴露用 Ingress/LoadBalancer 另配
+---
+# （可选）若服务本身不写 .prom，用 CronJob 周期调用 metrics_exporter 写共享卷。
+# 前提：镜像内已含 mojo 运行时或把 exporter 编进静态二进制；否则改用 sidecar 循环。
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: dadaozhijian-metrics
+  namespace: dadaozhijian
+spec:
+  schedule: "*/1 * * * *"              # 每分钟刷新一次指标
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: dadaozhijian-exporter
+          containers:
+            - name: exporter
+              image: "${REGISTRY}/dadaozhijian:${TAG}"
+              command: ["/app/dadaozhijian", "--export-metrics"]
+              envFrom:
+                - configMapRef:
+                    name: dadaozhijian-config
+              volumeMounts:
+                - name: node-exporter-textfiles
+                  mountPath: /var/lib/node_exporter
+              resources:
+                requests:
+                  cpu: "100m"
+                  memory: "128Mi"
+                limits:
+                  cpu: "500m"
+                  memory: "512Mi"
+          restartPolicy: OnFailure
+          volumes:
+            - name: node-exporter-textfiles
+              emptyDir: {}
+---
+# ServiceAccount for CronJob (least privilege)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dadaozhijian-exporter
+  namespace: dadaozhijian

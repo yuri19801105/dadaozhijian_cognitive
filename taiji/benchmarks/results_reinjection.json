@@ -1,0 +1,13 @@
+{
+  "module": "taiji/reinjection",
+  "version": "v1.3",
+  "date": "2026-07-12",
+  "toolchain": "Mojo 1.0.0b2",
+  "benchmark": "bench_reinjection.mojo",
+  "iterations_per_metric": 100000,
+  "ns_per_op": {
+    "reinject_safe": 2767,
+    "map_primitives": 1293
+  },
+  "notes": "各指标 1e5 次; @extern clock 取时 + sink 反馈(seed 跨迭代, 线性同余)防 DCE。reinject_safe 为全路径(源校验 + 字段映射 + 接入 FeedbackLoop.feedback + 结构化日志累积), 约 2767ns/op; map_primitives 为纯字段映射原语(输出串 + 决策链 + 强度), 约 1293ns/op。开销主要来自 reinject_output 可读串拼装与日志 append, 不进入 taiji 状态根既有热路径(feedback 自身 ≈ sub-ns 级)。衔接层为纯增量、非阻塞、异常隔离, 不影响现有 CognitiveCycle 闭环。"
+}

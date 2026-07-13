@@ -1,0 +1,13 @@
+{
+  "module": "qixing",
+  "version": "v1.0",
+  "date": "2026-07-12",
+  "toolchain": "mojo 1.0.0b2",
+  "benchmark": "bench_qixing.mojo (N=1_000_000, clock extern, sink-feedback anti-DCE)",
+  "ns_per_op": {
+    "order_chain": 476,
+    "priority_of": 181,
+    "build_sequence": 507
+  },
+  "notes": "order_chain/build_sequence 含 wuxing.schedule + liuhe 供给构造与 selection-sort；priority_of 为单步权重×容量折扣。确定性无随机。"
+}

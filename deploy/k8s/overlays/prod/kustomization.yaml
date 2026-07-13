@@ -1,0 +1,57 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../dadaozhijian.yaml
+
+namespace: dadaozhijian
+
+namePrefix: ""
+
+commonLabels:
+  environment: prod
+
+replicas:
+  - name: dadaozhijian
+    count: 3
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: dadaozhijian
+      spec:
+        template:
+          spec:
+            containers:
+              - name: app
+                resources:
+                  requests:
+                    cpu: "1000m"
+                    memory: "2Gi"
+                  limits:
+                    cpu: "4000m"
+                    memory: "8Gi"
+                env:
+                  - name: GOGC
+                    value: "50"
+    target:
+      kind: Deployment
+  - patch: |-
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: dadaozhijian
+      spec:
+        type: LoadBalancer
+    target:
+      kind: Service
+
+configMapGenerator:
+  - name: dadaozhijian-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=WARN
+      - SNAPSHOT_EVERY=10
+      - BACKFILL_BUDGET_MS=15

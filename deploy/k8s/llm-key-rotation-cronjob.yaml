@@ -1,0 +1,79 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: dadaozhijian-llm-key-rotation
+  namespace: dadaozhijian
+spec:
+  schedule: "0 3 * * 0"          # 每周日 03:00 UTC 轮换
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: dadaozhijian-secrets-rotator
+          containers:
+            - name: rotator
+              image: bitnami/kubectl:latest
+              command: ["/bin/bash", "-c"]
+              args:
+                - |
+                  set -euo pipefail
+                  # 从 Vault 获取新 Key（需配置 VAULT_ADDR/VAULT_TOKEN）
+                  NEW_KEY=$(vault kv get -field=api_key secret/dadaozhijian/llm)
+                  kubectl create secret generic dadaozhijian-secrets \
+                    -n dadaozhijian \
+                    --from-literal=LLM_API_KEY="$NEW_KEY" \
+                    --dry-run=client -o yaml | kubectl apply -f -
+                  kubectl patch deployment dadaozhijian -n dadaozhijian \
+                    -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"llm-key-rotated\":\"$(date +%s)\"}}}}"
+                  kubectl rollout status deployment/dadaozhijian -n dadaozhijian --timeout=5m
+              env:
+                - name: VAULT_ADDR
+                  valueFrom:
+                    secretKeyRef:
+                      name: vault-config
+                      key: addr
+                - name: VAULT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: vault-config
+                      key: token
+          restartPolicy: OnFailure
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dadaozhijian-secrets-rotator
+  namespace: dadaozhijian
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: dadaozhijian-secret-rotator
+  namespace: dadaozhijian
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "create", "patch", "update"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dadaozhijian-secret-rotator-binding
+  namespace: dadaozhijian
+subjects:
+  - kind: ServiceAccount
+    name: dadaozhijian-secrets-rotator
+    namespace: dadaozhijian
+roleRef:
+  kind: Role
+  name: dadaozhijian-secret-rotator
+  apiGroup: rbac.authorization.k8s.io

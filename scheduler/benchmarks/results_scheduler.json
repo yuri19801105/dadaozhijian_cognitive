@@ -1,0 +1,12 @@
+{
+  "module": "scheduler",
+  "version": "v1.0",
+  "date": "2026-07-12",
+  "toolchain": "mojo 1.0.0b2",
+  "benchmark": "bench_scheduler.mojo (N=1_000_000, clock extern, sink-feedback anti-DCE)",
+  "ns_per_op": {
+    "dispatch": 487,
+    "dispatch_from_phase": 666
+  },
+  "notes": "dispatch 端到端串联 wuxing.schedule + liuhe.build_supply + qixing.build_sequence；dispatch_from_phase 额外含 schedule_from_phase(四象→五行种子)。确定性无随机。"
+}

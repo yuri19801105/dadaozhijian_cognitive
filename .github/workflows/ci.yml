@@ -1,0 +1,51 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Mojo
+        uses: modularml/setup-mojo@v1
+        with:
+          version: '1.0.0b2'
+      - name: Install deps
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install -r requirements.txt 2>/dev/null || true
+      - name: Run all test suites
+        run: |
+          .venv/bin/mojo run -I . -I core core/tests/test_all.mojo
+          .venv/bin/mojo run -I . -I core taiji/tests/test_taiji_state.mojo
+          .venv/bin/mojo run -I . -I core taiji/tests/test_persistence.mojo
+          .venv/bin/mojo run -I . -I core taiji/tests/test_feedback_loop.mojo
+          .venv/bin/mojo run -I . -I core taiji/tests/test_consolidation.mojo
+          .venv/bin/mojo run -I . -I core taiji/tests/test_cycle.mojo
+          .venv/bin/mojo run -I . -I core taiji/tests/test_reinjection.mojo
+          .venv/bin/mojo run -I . -I core liangyi/tests/test_liangyi.mojo
+          .venv/bin/mojo run -I . -I core sancai/tests/test_sancai.mojo
+          .venv/bin/mojo run -I . -I core sixiang/tests/test_sixiang.mojo
+          .venv/bin/mojo run -I . -I core bagua/tests/test_bagua.mojo
+          .venv/bin/mojo run -I . -I core wuxing/tests/test_wuxing.mojo
+          .venv/bin/mojo run -I . -I core liuhe/tests/test_liuhe.mojo
+          .venv/bin/mojo run -I . -I core qixing/tests/test_qixing.mojo
+          .venv/bin/mojo run -I . -I core scheduler/tests/test_scheduler.mojo
+          .venv/bin/mojo run -I . -I core pipeline/tests/test_pipeline.mojo
+          .venv/bin/mojo run -I . -I core shifang/tests/test_shifang.mojo
+          .venv/bin/mojo run -I . -I core runtime/tests/test_runtime.mojo
+          .venv/bin/mojo run -I . -I core observability/tests/test_observability.mojo
+          .venv/bin/mojo run -I . -I core io/tests/test_io.mojo
+          .venv/bin/mojo run -I . -I core config/tests/test_config.mojo
+          .venv/bin/mojo run -I . -I core tests/test_taiji.mojo
+      - name: Run benchmarks
+        run: |
+          .venv/bin/mojo run -I . -I core core/benchmarks/bench_core.mojo --json > bench_core.json
+          .venv/bin/mojo run -I . -I core wuxing/benchmarks/bench_wuxing.mojo --json > bench_wuxing.json
+          .venv/bin/mojo run -I . -I core liuhe/benchmarks/bench_liuhe.mojo --json > bench_liuhe.json
+          .venv/bin/mojo run -I . -I core qixing/benchmarks/bench_qixing.mojo --json > bench_qixing.json
+          .venv/bin/mojo run -I . -I core scheduler/benchmarks/bench_scheduler.mojo --json > bench_scheduler.json
+          .venv/bin/mojo run -I . -I core pipeline/benchmarks/bench_pipeline.mojo --json > bench_pipeline.json
+          .venv/bin/mojo run -I . -I core shifang/benchmarks/bench_shifang.mojo --json > bench_shifang.json
+          .venv/bin/mojo run -I . -I core runtime/benchmarks/bench_runtime.mojo --json > bench_runtime.json
+          .venv/bin/mojo run -I . -I core observability/benchmarks/bench_observability.mojo --json > bench_obs.json
+          python3 scripts/check_benchmarks.py

@@ -1,0 +1,13 @@
+{
+  "module": "liuhe",
+  "version": "v1.0",
+  "date": "2026-07-12",
+  "toolchain": "mojo 1.0.0b2",
+  "benchmark": "bench_liuhe.mojo (N=1_000_000, clock extern, sink-feedback anti-DCE)",
+  "ns_per_op": {
+    "build_supply": 178,
+    "he_harmony": 1,
+    "merge_supplies": 0
+  },
+  "notes": "build_supply 含 wuxing.balance 的 total_energy/variance 调用；he_harmony/merge 为纯算术极快路径。merge 低于时钟分辨率故记 0。"
+}

@@ -1,0 +1,14 @@
+# 大道至简 · 全局默认配置（外置化，不进代码）
+# 运行时加载优先级：1) secrets.toml(git-crypt) 2) defaults.toml 3) 代码内 default_config_string()
+max_depth = 10
+rule_count = 5
+scheduler_policy_id = 0
+intensity_floor = 1
+keep_rate = 0.7
+forget_rate = 0.1
+connector_timeout_ms = 2000
+connector_retry = 2
+llm_api_key = ""
+backfill_budget_ms = 20
+backfill_min_samples = 4
+health_fail_threshold = 5

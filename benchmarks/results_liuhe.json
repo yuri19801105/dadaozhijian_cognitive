@@ -1,0 +1,10 @@
+{
+  "task": "M6 六合 LiuHe (空间感知与上下文建模)",
+  "dataset": "合成负载: context_vector 1,000,000 次调用 (ws=Workspace(), chain_depth=3, ground_input=\"hello world\", cfg=Config())",
+  "iterations": 1000000,
+  "mojo": {
+    "context_vector_1M_ns": 12
+  },
+  "python_reference": null,
+  "note": "M6 为纯算法模块(context_vector(ws, chain_depth, ground_input, cfg) -> SIMD[DType.int64, 6]), 无对应 Python 参照, 故仅 Mojo 单边计时(与计划 §0「每模块配 Python 参照」原则的偏离属整体性, 非 M6 独有). 计时用 @extern(\"clock\") CPU 时钟, 单位 ns/次(bench 输出 *1000/N). 六维映射: 东=ws.available_cells() / 西=chain_depth / 南=ws.get_focus_strength() / 北=cfg.max_depth / 上=min(9, chain_depth/2) / 下=min(9, byte_length/5). 从干净 checkout 直接可复现, 无外部依赖. 实测值取自 2026-07-10 多次运行的稳定区间(11-12ns/次), 与 ADR-0007 记录的 12ns 一致. 测试 tests/test_liuhe.mojo 实跑 8/8 passed(已随 M4+ 测试框架迁移统一为 `from std.testing` + `raises` + `main()`)."
+}

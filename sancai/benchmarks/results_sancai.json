@@ -1,0 +1,14 @@
+{
+  "module": "sancai",
+  "version": "v0.5",
+  "date": "2026-07-11",
+  "toolchain": "mojo 1.0.0b2",
+  "iterations": 1000000,
+  "unit": "ns/op",
+  "results": {
+    "from_layer_vectors": 826,
+    "pass_tian_to_di": 96
+  },
+  "regression_gate": "CI 超阈即阻断(见规划 §8 #6/#10)",
+  "note": "C clock() 微秒 *1000 估算; sink 驱动输入防 DCE。热路径纳秒级, 作为上层辅助开销可忽略。"
+}

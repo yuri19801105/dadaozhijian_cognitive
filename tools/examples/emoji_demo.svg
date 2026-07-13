@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="80">
+  <line x1="30" y1="40" x2="90" y2="40" stroke="gray" stroke-width="2"/>
+  <line x1="150" y1="40" x2="210" y2="40" stroke="gray" stroke-width="2"/>
+  <g transform="translate(30,40)"><rect x="-18" y="-14" width="36" height="28" rx="4" fill="white" stroke="black"/><text x="0" y="5" text-anchor="middle" font-size="14">☷</text></g>
+  <g transform="translate(90,40)"><rect x="-18" y="-14" width="36" height="28" rx="4" fill="white" stroke="black"/><text x="0" y="5" text-anchor="middle" font-size="14">☶</text></g>
+  <g transform="translate(150,40)"><rect x="-18" y="-14" width="36" height="28" rx="4" fill="white" stroke="black"/><text x="0" y="5" text-anchor="middle" font-size="14">☷</text></g>
+  <g transform="translate(210,40)"><rect x="-18" y="-14" width="36" height="28" rx="4" fill="white" stroke="black"/><text x="0" y="5" text-anchor="middle" font-size="14">☶</text></g>
+</svg>

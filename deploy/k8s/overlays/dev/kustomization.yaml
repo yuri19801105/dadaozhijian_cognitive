@@ -1,0 +1,44 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../dadaozhijian.yaml
+
+namespace: dadaozhijian-dev
+
+namePrefix: dev-
+
+commonLabels:
+  environment: dev
+
+replicas:
+  - name: dadaozhijian
+    count: 1
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: dadaozhijian
+      spec:
+        template:
+          spec:
+            containers:
+              - name: app
+                resources:
+                  requests:
+                    cpu: "250m"
+                    memory: "512Mi"
+                  limits:
+                    cpu: "1000m"
+                    memory: "2Gi"
+    target:
+      kind: Deployment
+
+configMapGenerator:
+  - name: dadaozhijian-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=DEBUG
+      - SNAPSHOT_EVERY=2

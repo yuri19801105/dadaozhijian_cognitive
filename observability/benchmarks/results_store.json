@@ -1,0 +1,13 @@
+{
+  "module": "observability",
+  "submodule": "store",
+  "version": "v1.3",
+  "date": "2026-07-12",
+  "toolchain": "Mojo 1.0.0b2",
+  "benchmark": "bench_store.mojo",
+  "iterations_per_metric": 10000000,
+  "ns_per_op": {
+    "trace_backfill_jsonl": 4816
+  },
+  "notes": "每指标 1e7 次(外层 2e5 × 内层 50); @extern clock 取时 + sink 反馈(seed 跨迭代)防 DCE。单次 op = record_trace(规划链+3 span 固化) + record_backfill(同一 lineage_id 落库) + to_jsonl(序列化一行 JSON)。开销主要来自字符串序列化(每记录约 200 字节 JSON), 与'跨进程持久化可追踪'的价值匹配; ledger 仅在导出时发生序列化, 内存态追加为 O(1), 不进入 taiji 回灌热路径。跨进程消费见 store_reader.py（读 stdin JSON-Lines 校验 lineage 串联）。"
+}

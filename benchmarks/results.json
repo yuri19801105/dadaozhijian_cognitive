@@ -1,0 +1,22 @@
+{
+  "dataset": "Chinese text (天地玄黄 宇宙洪荒 ... ) x1000, 78000 bytes",
+  "vocab_size": 300,
+  "mojo": {
+    "train_time_ms": 21,
+    "encode_time_ms": 3,
+    "decode_time_ms": 0,
+    "total_time_ms": 24,
+    "decode_match": true,
+    "encoded_ids": 30001
+  },
+  "python_minbpe": {
+    "train_time_ms": 188,
+    "encode_time_ms": 172,
+    "decode_time_ms": 1,
+    "total_time_ms": 361,
+    "decode_match": true,
+    "encoded_ids": 30001
+  },
+  "speedup_total_x": 15.04,
+  "note": "加速比 15x 高于 implementation-plan.md §3.3 的 ~3x 估算,但远低于同节明示的'BPE 不应预期 20-180x'上限,属合理区间。PRD.md 旧记录 31x(基于 734ms Python)未能复现,以本次实测为准。"
+}

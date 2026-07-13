@@ -1,0 +1,12 @@
+{
+  "task": "M4 八卦 Trigram (八种推理算子库 + 调度 + 推理链)",
+  "dataset": "合成负载: 每算子 1,000,000 次调用, 共 8 算子 / dispatch 8 路由 / chain 3 段",
+  "iterations": 1000000,
+  "mojo": {
+    "eight_ops_x1M_ms": 26,
+    "dispatch_8x1M_ms": 26,
+    "chain_3x1M_ms": 3
+  },
+  "python_reference": null,
+  "note": "M4 为纯算法模块(八推理算子 + apply_trigram 调度 + apply_chain 推理链), 无对应 Python 参照, 故仅 Mojo 单边计时(与计划 §0「每模块配 Python 参照」原则的偏离属整体性, 非 M4 独有). 计时用 @extern(\"clock\") CPU 时钟, 单位 ms. 三条路径: (1) 8 算子各 1M 次 ~26ms; (2) apply_trigram 路由 8 次 1M ~26ms; (3) apply_chain 3 段 1M ~3ms. 从干净 checkout 直接可复现, 无外部依赖. 实测值取自 2026-07-10 多次运行的稳定区间(eight_ops/dispatch 均 26ms, chain 3ms). 测试 tests/test_trigram.mojo 实跑 21/21 passed(已修复过时的顶层 `from testing` 导入并补 `raises` + `main()` 运行器)."
+}

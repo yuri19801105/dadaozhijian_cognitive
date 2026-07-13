@@ -1,0 +1,16 @@
+{
+  "module": "wuxing",
+  "version": "v0.9",
+  "date": "2026-07-11",
+  "toolchain": "mojo 1.0.0b2",
+  "iterations": 1000000,
+  "unit": "ns/op",
+  "results": {
+    "sheng_ke": 5,
+    "propagate": 346,
+    "schedule": 175,
+    "rebalance": 355
+  },
+  "regression_gate": "CI 超阈即阻断(见规划 §8 #6/#10)",
+  "note": "C clock() 微秒 *1000 估算; sink 反馈 + 连续变化种子(i%质数)驱动输入防 DCE/常量折叠。sheng_ke 最轻(纯整型关系表查询, 无分配); propagate/rebalance 最重(每次迭代新建 5 元素 List + 遍历); schedule 居中(argmax+归一+相生链)。热路径微秒内, 作为上层调度层单次决策开销可忽略。"
+}

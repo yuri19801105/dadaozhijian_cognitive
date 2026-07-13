@@ -1,0 +1,24 @@
+{
+  "task": "M2 RegexTokenizer",
+  "dataset": "English+digits+punct ('the quick brown fox ... foo_bar. ' x500, 47000 bytes)",
+  "vocab_size": 300,
+  "mojo": {
+    "train_time_ms": 89,
+    "encode_time_ms": 8,
+    "decode_time_ms": 0,
+    "total_time_ms": 97,
+    "decode_match": true,
+    "encoded_ids": 18001
+  },
+  "python_minbpe": {
+    "train_time_ms": 203,
+    "encode_time_ms": 23,
+    "decode_time_ms": 0,
+    "total_time_ms": 227,
+    "decode_match": true,
+    "encoded_ids": 18001
+  },
+  "speedup_total_x": 2.34,
+  "parity": "encode/decode 输出与 minbpe RegexTokenizer 逐 token 一致 (9/9 测试通过)",
+  "note": "Mojo 无内置正则, GPT-4 split pattern 由 _pretokenize 手工复刻(POSIX 式最长匹配). 加速比 ~2.3x, 与 M1 的 ~15x 不同, 因正则切分 + 多次切分扫描带来额外开销, 属预期内. python_minbpe 侧自 2026-07-10 起已从固化进 benchmarks/references/minbpe 的 Karpathy/minbpe 参照(commit 1acefe8)复现, 不再依赖临时目录 /tmp/minbpe-src; 需先安装 benchmarks/references/requirements.txt 中的 regex 依赖. 见 ADR-0006(已更新为实际的手工复刻实现)."
+}

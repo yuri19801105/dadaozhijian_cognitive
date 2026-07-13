@@ -1,0 +1,10 @@
+{
+  "task": "M10 十方 Executor (八卦算子→文本输出, 认知→行动闭环末端)",
+  "dataset": "合成负载: execute 1,000,000 次调用 (chain=[ZHEN, LI, DUI] 3 算子, ws=Workspace(), input=\"hello world\")",
+  "iterations": 1000000,
+  "mojo": {
+    "execute_3chain_1M_ns": 350
+  },
+  "python_reference": null,
+  "note": "M10 为纯算法模块(execute(chain, ws, raw_input) -> String, 8 算子→文本映射 + 未知回退), 无对应 Python 参照, 故仅 Mojo 单边计时(与计划 §0「每模块配 Python 参照」原则的偏离属整体性, 非 M10 独有). 计时用 @extern(\"clock\") CPU 时钟, 单位 ns/次(bench 输出 *1000/N). 从干净 checkout 直接可复现, 无外部依赖. 实测值取自 2026-07-10 多次运行的稳定区间(333-358ns, 中位 ~345ns; 取 ~350ns 作为代表值). 原 PRD / ADR-0009 记 366ns 略偏高(顶部 ~3%), 已校准. 测试 tests/test_executor.mojo 实跑 12/12 passed(已随 M4+ 测试框架迁移统一为 `from std.testing` + `raises` + `main()`). execute 已接入 src/pipeline.mojo 的 CognitiveCycle.run, 与 run_cycle(只读规划器) 串成 认知→行动 闭环(见 ADR-0004 / ADR-0009)."
+}

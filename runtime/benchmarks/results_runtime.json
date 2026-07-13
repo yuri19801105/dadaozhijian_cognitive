@@ -1,0 +1,15 @@
+{
+  "module": "runtime",
+  "version": "v1.3",
+  "date": "2026-07-12",
+  "toolchain": "Mojo 1.0.0b2",
+  "benchmark": "bench_runtime.mojo",
+  "iterations_per_metric": 10000000,
+  "ns_per_op": {
+    "lifecycle_state_transition": 0,
+    "memory_alloc_free": 2,
+    "concurrency_slot_timeout": 4,
+    "backfill_health_gate": 4
+  },
+  "notes": "每指标 1e7 次(外层 2e5 × 内层 50); @extern clock 取时 + sink 反馈(seed 跨迭代)防 DCE。lifecycle 纯寄存器整数操作 < 1ns/op(低于时钟粒度, 记 0); backfill=record_backfill(success,latency)+BackfillGate.allow 判定 ≈4ns/op。模块整体极轻量, 符合'运行时仅做状态机/预算/限并发 + 回灌健康度门控的薄守护层'定位——回灌纳入健康度后, 失败率持续偏高(runtime 侧)或单次耗时超预算(gate 侧)均自动降级, 不阻塞 taiji 状态根。"
+}

@@ -1,0 +1,32 @@
+# pixi environments
+.pixi/*
+!.pixi/config.toml
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# === Local project data (WorkBuddy) — not source, per project convention ===
+.workbuddy/
+
+# === Runtime artifacts (regenerable) ===
+shifang/ledger/*.jsonl
+shifang/ledger/.health_cache.json
+*.prom
+
+# === Scratch / OS ===
+.scratch/
+.DS_Store
+
+# === Downloaded binaries / installers accidentally dropped in workspace ===
+kubectl
+Docker.dmg
+*.dmg
+
+# === Editor / temp ===
+*.swp
+*~
+

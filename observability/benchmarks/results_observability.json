@@ -1,0 +1,14 @@
+{
+  "module": "observability",
+  "version": "v1.2",
+  "date": "2026-07-12",
+  "toolchain": "Mojo 1.0.0b2",
+  "benchmark": "bench_observability.mojo",
+  "iterations_per_metric": 10000000,
+  "ns_per_op": {
+    "metrics_record_p95": 39,
+    "tracer_span_add_render": 2269,
+    "explain_render_summary_svg": 9552
+  },
+  "notes": "每指标 1e7 次(外层 2e5 × 内层 50); @extern clock 取时 + sink 反馈(seed 跨迭代)防 DCE。metrics 为纯整数滑动窗口统计(39ns/op); tracer 含 16 槽固化 + 字符串渲染(2269ns/op); explain+render_summary+render_svg 含三次字符串拼装(9552ns/op)——观测层开销主要来自文本渲染, 与'决策可解释/可审计'的价值匹配, 不进入 taiji 状态根热路径。"
+}

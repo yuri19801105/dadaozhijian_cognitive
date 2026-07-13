@@ -1,0 +1,13 @@
+{
+  "task": "M5 五行 WuXing (相生相克动态平衡调度器)",
+  "dataset": "合成负载: schedule 每相 1,000,000 次调用 (Wood/Fire) / 生克网络 generate_next+restrain_target 1M / OverloadCounter 4 次追踪 1M",
+  "iterations": 1000000,
+  "mojo": {
+    "wood_schedule_1M_ms": 100,
+    "fire_schedule_1M_ms": 90,
+    "shengke_1M_ms": 0,
+    "overload_4x1M_ms": 0
+  },
+  "python_reference": null,
+  "note": "M5 为纯算法模块(PhaseSignal/BalanceDecision/schedule + 生克网络 generate_next/restrain_target + OverloadCounter 过载过滤 + wu_xing_cycle), 无对应 Python 参照, 故仅 Mojo 单边计时(与计划 §0「每模块配 Python 参照」原则的偏离属整体性, 非 M5 独有). 计时用 @extern(\"clock\") CPU 时钟, 单位 ms. 四条路径: (1) Wood 相 schedule 1M ~100ms; (2) Fire 相 schedule 1M ~90ms; (3) 生克网络 generate_next+restrain_target 1M <1ms; (4) OverloadCounter 4 次 track 1M <1ms. schedule 含 3x3 网格分支扫描 + 生克 +1/-2 调整 + _clamp(0,9) + 过载过滤, 故比纯生克路径耗时高约两个数量级. 从干净 checkout 直接可复现, 无外部依赖. 实测值取自 2026-07-10 多次运行的稳定区间(Wood 96-101ms, Fire 84-100ms, 生克/过载均 0ms). 测试 tests/test_wu_xing.mojo 实跑 11/11 passed(已随 M4+ 测试框架迁移统一为 `from std.testing` + `raises` + `main()`)."
+}

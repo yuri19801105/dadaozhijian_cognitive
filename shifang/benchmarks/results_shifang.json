@@ -1,0 +1,13 @@
+{
+  "module": "shifang",
+  "version": "v1.2",
+  "date": "2026-07-12",
+  "toolchain": "Mojo 1.0.0b2",
+  "benchmark": "bench_shifang.mojo",
+  "iterations": 1000000,
+  "ns_per_op": {
+    "fanout_incl_connector": 1959,
+    "dispatch_only": 1202
+  },
+  "notes": "1M 次; @extern clock 取时 + sink 反馈 + 连续变化种子防 DCE; 连接器当前为确定性模板化响应(离线可测), 真实 API 接入缝见 call_external(可替换为 libcurl shim / sidecar / Mojo net)。"
+}

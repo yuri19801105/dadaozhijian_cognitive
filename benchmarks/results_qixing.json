@@ -1,0 +1,10 @@
+{
+  "task": "M7 七星 QiXing (动态规划与任务调度)",
+  "dataset": "合成负载: plan(context, candidates) 1,000,000 次调用 (context=SIMD[int64,6](0,2,6,8,0,0), candidates=[CHIEN,ZHEN,LI,DUI] 4 候选)",
+  "iterations": 1000000,
+  "mojo": {
+    "plan_4chain_1M_ns": 270
+  },
+  "python_reference": null,
+  "note": "M7 为纯算法模块(plan(context, candidates) -> List[Int] 三阶段流水线), 无对应 Python 参照, 故仅 Mojo 单边计时(与计划 §0「每模块配 Python 参照」原则的偏离属整体性, 非 M7 独有). 计时用 @extern(\"clock\") CPU 时钟, 单位 ns/次(bench 输出 *1000/N). 三阶段: (1) 剪枝 abstract_level(t) <= north(max_depth); (2) bubble 排序 score = south - west + abstract_level(t) 降序; (3) 同分锚定 abstract_level 高者优先. plan 含两轮 bubble sort (O(n^2)), 4 候选下单次 ~270ns. 从干净 checkout 直接可复现, 无外部依赖. 实测值取自 2026-07-10 多次运行的稳定区间(259-279ns, 中位 ~270ns; 原 PRD/ADR-0008 记 280ns 略偏高, 已校准). 测试 tests/test_qixing.mojo 实跑 7/7 passed(已随 M4+ 测试框架迁移统一为 `from std.testing` + `raises` + `main()`). 六合->七星 供给关系在 src/pipeline.mojo 的 run_cycle 中真实落地(见 ADR-0004 / ADR-0008)."
+}

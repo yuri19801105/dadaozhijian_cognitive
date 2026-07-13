@@ -1,0 +1,7 @@
+EmojiGraph{nodes=4,connections=2,layout=LINEAR}
+[0] ☷KUN pos=0 emo=😐NEUTRAL w=50%
+[1] ☶GEN pos=1 emo=😐NEUTRAL w=50%
+[2] ☷KUN pos=2 emo=😐NEUTRAL w=50%
+[3] ☶GEN pos=3 emo=😐NEUTRAL w=50%
+  conn 0->1 strength=50% color=NEUTRAL
+  conn 2->3 strength=50% color=NEUTRAL

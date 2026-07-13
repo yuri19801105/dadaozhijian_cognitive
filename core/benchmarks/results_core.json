@@ -1,0 +1,14 @@
+{
+  "module": "core",
+  "generated": "2026-07-11",
+  "toolchain": "mojo 1.0.0b2",
+  "N": 1000000,
+  "timing": "C clock() 微秒 *1000 -> ns/op; 结果经 sink 累加防止 DCE 与闭式折叠",
+  "metrics_ns_per_op": {
+    "vector_add_v8": 6,
+    "tensor_add_3x3": 9,
+    "softmax_len8": 599,
+    "exp_scalar": 14
+  },
+  "notes": "热路径均处于纳秒级; softmax 因含 8 次 exp + 归一化最高(~0.6us)。core 为后续所有模块公共地基, 开销可忽略。"
+}

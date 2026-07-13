@@ -1,0 +1,12 @@
+{
+  "module": "pipeline",
+  "version": "v1.1",
+  "date": "2026-07-12",
+  "toolchain": "mojo 1.0.0b2",
+  "benchmark": "bench_pipeline.mojo (N=1_000_000, clock extern, sink-feedback anti-DCE)",
+  "ns_per_op": {
+    "run_pipeline_text": 997,
+    "run_pipeline_from_energies": 917
+  },
+  "notes": "阶段图驱动端到端编排: 解析→五行调度→六合供给→七星定序→总派发。基准含 wuxing+liuhe+qixing+scheduler 全链路; 文本入口略高于能量入口(多一次相位/强度解析)。确定性无随机。"
+}

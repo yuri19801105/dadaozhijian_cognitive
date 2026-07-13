@@ -1,0 +1,12 @@
+{
+  "task": "M8 静语 (Emoji) 可视化 - M8-core 渲染开销",
+  "dataset": "合成负载: 2 条推理链 [0,5,7] 与 [1,2,3] (共 6 节点, 4 连线), build + render + render_svg 各 500,000 次",
+  "iterations": 500000,
+  "mojo": {
+    "build_500k_ns": 1697,
+    "render_500k_ns": 764,
+    "render_svg_500k_ns": 653
+  },
+  "python_reference": null,
+  "note": "M8-core 为纯观测层(渲染推理链为 emoji / 文本化图形, 见 ADR-0011), 无对应 Python 参照, 故仅 Mojo 单边计时. 计时用 @extern(\"clock\") CPU 时钟, 单位 ns/次(bench 输出 *1000/N).\n\n测量口径: 为避免 O(N^2), build 每次新建 EmojiGraph + 填充扁平并行数组(2 链/6 节点/4 连线); render / render_svg 不写状态, 仅构建一次后渲染 N 次, 单独测纯渲染开销. 因本构建不支持 borrowed 参数, build 入参 chains 按值移动, 故每次循环内重新构造 chains (等价调用方持有可变链的场景). 实测稳定区间: build 约 1650-1720ns (代表值 ~1697ns); render 约 740-790ns (代表值 ~764ns); render_svg 约 630-670ns (代表值 ~653ns). 三者均为离线性、确定性产出, 非运行时热点, 不计入全认知周期 <1us 实时性预算(debug-only 路径).\n\n测试 tests/test_emoji.mojo 实跑 10/10 passed; 全量 mojo run -I src -I tests tests/test_all.mojo → 116 tests ALL SUITES PASSED, 0 warnings (2026-07-10). 实现见 src/emoji.mojo (EmojiGraph + build/render/render_svg)."
+}

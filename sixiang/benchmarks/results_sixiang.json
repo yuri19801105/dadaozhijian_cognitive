@@ -1,0 +1,14 @@
+{
+  "module": "sixiang",
+  "version": "v0.6",
+  "date": "2026-07-11",
+  "toolchain": "mojo 1.0.0b2",
+  "iterations": 1000000,
+  "unit": "ns/op",
+  "results": {
+    "classify+canonical": 10,
+    "advance": 67
+  },
+  "regression_gate": "CI 超阈即阻断(见规划 §8 #6/#10)",
+  "note": "C clock() 微秒 *1000 估算; classify+canonical 用 sink 反馈递推防闭式折叠 DCE, advance 每轮重新播种防耗散收敛。热路径纳秒级, 作为上层辅助开销可忽略。"
+}

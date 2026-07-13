@@ -1,0 +1,6 @@
+# Third-party dependency for the vendored Karpathy/minbpe reference.
+# M2's RegexTokenizer (benchmarks/references/minbpe/regex.py) imports the
+# `regex` package (not stdlib `re`) for the GPT-4 Unicode split pattern.
+# Install into the project venv with:
+#   uv pip install --python .venv -r benchmarks/references/requirements.txt
+regex==2026.6.28

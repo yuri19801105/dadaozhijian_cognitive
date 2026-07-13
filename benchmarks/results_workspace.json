@@ -1,0 +1,11 @@
+{
+  "task": "M3 九宫 Workspace (3x3 工作记忆网格 + 9 维注意力)",
+  "dataset": "合成负载: 10000 次迭代, 每次 hold(action) + update_attention(focus)",
+  "iterations": 10000,
+  "mojo": {
+    "hold_attention_ms": 11,
+    "hold_attention_retrieve_ms": 270
+  },
+  "python_reference": null,
+  "note": "M3 为纯算法模块(3x3 网格 + 长度 9 注意力向量), 无对应 Python 参照, 故仅 Mojo 单边计时(与计划 §0「每模块配 Python 参照」原则的偏离属整体性, 非 M3 独有). 计时用 @extern(\"clock\") CPU 时钟, 单位 ms. 两条路径: (1) hold+update_attention 热循环 ~11ms; (2) 额外叠加 attention_retrieve(每次全 history 线性扫描)后 ~270ms, 随 history 增长呈 O(n^2), 属预期. 从干净 checkout 直接可复现, 无外部依赖. 实测值取自 2026-07-10 多次运行的稳定区间(hold+attention 11-12ms, +retrieve 269-273ms). 测试 tests/test_workspace.mojo 实跑 10/10 passed, 源码 workspace.mojo 编译 0 warnings(已清理 __init__ 中未使用循环变量)."
+}

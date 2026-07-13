@@ -1,0 +1,51 @@
+{
+  "version": 3,
+  "default_backend": "qwen3-4b-mlx",
+  "failover_order": ["phi-4-mini", "qwen3-4b"],
+  "ledger_path": "shifang/ledger/sidecar_calls.jsonl",
+  "health_cache_path": "shifang/ledger/.health_cache.json",
+  "health_check": {
+    "timeout_sec": 5.0,
+    "cache_ttl_sec": 30,
+    "endpoint": "models"
+  },
+  "call_timeout_sec": 120.0,
+  "backends": [
+    {
+      "name": "qwen3-4b-mlx",
+      "type": "ollama",
+      "interface": "ollama",
+      "base_url": "http://localhost:11434",
+      "model": "qwen3.5:4b-mlx",
+      "api_key": "ollama",
+      "temperature": 0.3,
+      "max_tokens": 256,
+      "system_prompt": "你是大道至简认知架构的执行侧车，依据五行生克/八卦算子集把给定的符号化调度计划用简体中文解释给用户。",
+      "reasoning": false
+    },
+    {
+      "name": "qwen3-4b",
+      "type": "ollama",
+      "interface": "ollama",
+      "base_url": "http://localhost:11434",
+      "model": "qwen3:4b",
+      "api_key": "ollama",
+      "temperature": 0.3,
+      "max_tokens": 256,
+      "system_prompt": "你是大道至简认知架构的执行侧车，依据五行生克/八卦算子集把给定的符号化调度计划用简体中文解释给用户。",
+      "reasoning": false
+    },
+    {
+      "name": "phi-4-mini",
+      "type": "ollama",
+      "interface": "ollama",
+      "base_url": "http://localhost:11434",
+      "model": "phi4-mini:3.8b",
+      "api_key": "ollama",
+      "temperature": 0.2,
+      "max_tokens": 256,
+      "system_prompt": "You are the execution sidecar of the DaDaoZhiJian cognitive architecture. Render the given symbolic scheduling plan into concise Simplified-Chinese prose. Use step-by-step reasoning for math/code tasks.",
+      "reasoning": false
+    }
+  ]
+}

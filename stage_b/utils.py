@@ -92,3 +92,15 @@ def ensure_dir(path: str) -> Path:
     p = Path(path)
     p.mkdir(parents=True, exist_ok=True)
     return p
+
+
+def write_text(path: str, text: str) -> None:
+    """将文本写入文件（覆盖，UTF-8）。
+
+    Args:
+        path: 目标路径。
+        text: 待写入的文本内容。
+    """
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(text, encoding="utf-8")

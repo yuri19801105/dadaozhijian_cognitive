@@ -17,6 +17,10 @@ shifang/ledger/*.jsonl
 shifang/ledger/.health_cache.json
 *.prom
 
+# === stage_b 生成产物（可重生成，非源码）===
+stage_b/__pycache__/
+stage_b/artifacts/
+
 # === Scratch / OS ===
 .scratch/
 .DS_Store

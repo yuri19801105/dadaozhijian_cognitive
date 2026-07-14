@@ -1,7 +1,7 @@
 {
   "version": 4,
-  "default_backend": "distilled",
-  "failover_order": ["qwen3-4b-mlx", "phi-4-mini", "qwen3-4b"],
+  "default_backend": "neural",
+  "failover_order": ["distilled", "qwen3-4b-mlx", "phi-4-mini", "qwen3-4b"],
   "ledger_path": "shifang/ledger/sidecar_calls.jsonl",
   "health_cache_path": "shifang/ledger/.health_cache.json",
   "health_check": {
@@ -11,6 +11,15 @@
   },
   "call_timeout_sec": 120.0,
   "backends": [
+    {
+      "name": "neural",
+      "type": "neural",
+      "interface": "neural",
+      "model_path": "stage_b/dadaozhijian_0.5b",
+      "temperature": 0.0,
+      "max_tokens": 512,
+      "note": "自有模型「大道至简0.5b」：Qwen2.5-0.5B+LoRA 合并的自包含 checkpoint，需 torch 训练栈（MPS/CPU）。"
+    },
     {
       "name": "distilled",
       "type": "distilled",

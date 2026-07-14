@@ -37,9 +37,13 @@ class StageBConfig:
     max_epochs: int = 3
     learning_rate: float = 2.0e-4
     # 神经蒸馏分支（method='neural' 时生效）
-    neural_base_model: str = "Qwen2.5-0.5B-Instruct"
+    # 注意：Qwen2.5-0.5B-Instruct 为 gated 模型（匿名下载返回 401），本机实际
+    # 训练用的是 open 的 base 变体 Qwen/Qwen2.5-0.5B（LoRA 经蒸馏数据学会指令格式）。
+    neural_base_model: str = "Qwen/Qwen2.5-0.5B"
     neural_gate: float = 1.0
     neural_max_seq_length: int = 512
+    # 自有合并模型「大道至简0.5b」目录（merge_and_eval.py 产出，自包含、可独立加载）
+    neural_merged_dir: Optional[Path] = None
     faithfulness_threshold: float = 0.95
     eval_ratio: float = 0.1
     eval_pairs_min: int = 30
@@ -55,6 +59,8 @@ class StageBConfig:
             self.output_dir = self.project_root / "stage_b" / "artifacts"
         if self.report_path is None:
             self.report_path = self.output_dir / "stage_b_report.md"
+        if self.neural_merged_dir is None:
+            self.neural_merged_dir = self.project_root / "stage_b" / "dadaozhijian_0.5b"
 
 
 def load_config(overrides: Optional[Dict[str, object]] = None) -> StageBConfig:

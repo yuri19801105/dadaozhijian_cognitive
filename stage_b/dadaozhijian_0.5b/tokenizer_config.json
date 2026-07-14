@@ -22,7 +22,7 @@
   ],
   "is_local": true,
   "local_files_only": false,
-  "max_length": 384,
+  "max_length": 512,
   "model_max_length": 131072,
   "pad_to_multiple_of": null,
   "pad_token": "<|endoftext|>",

@@ -107,6 +107,11 @@ def train(
     )
     # 神经蒸馏分支：组合蒸馏双 teacher → 自有小模型（需 transformers/peft 训练栈）
     if cfg.method == "neural":
+        merged = cfg.neural_merged_dir
+        if merged is not None and Path(str(merged)).exists():
+            # 自有合并模型已存在 → 直接复用（跳过昂贵的重训），进入评测/导出/调度链路
+            log.info("复用已合并的自有模型(跳过重训): %s", merged)
+            return Path(str(merged))
         return train_neural(cfg, train_pairs, eval_pairs)
     ckpt = ensure_dir(str(cfg.output_dir / "checkpoint"))
     # 数据清洗：剔除"参考响应自身未含全部计划符号"的低质量样本，

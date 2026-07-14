@@ -28,6 +28,10 @@ stage_b/neural_train.log
 stage_b/dadaozhijian_0.5b/model.safetensors
 stage_b/dadaozhijian_0.5b/*.safetensors
 stage_b/merge_eval.log
+stage_b/gen_distill.log
+stage_b/neural_e2e.log
+stage_b/train_merge_eval.log
+stage_b/neural_train.log
 
 # === Scratch / OS ===
 .scratch/

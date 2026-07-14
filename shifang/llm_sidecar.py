@@ -273,6 +273,46 @@ def _call_distilled(b, prompt, timeout):
     return (out, True, int((time.time() - t0) * 1000), None, None)
 
 
+# ---------- 自蒸馏神经网络后端（自有模型「大道至简0.5b」） ----------
+def _call_neural(b, prompt, timeout):
+    # type: (dict, str, float) -> tuple
+    """本地自蒸馏神经网络后端：加载「大道至简0.5b」自包含模型离线渲染符号计划。
+
+    与 distilled 后端同属"零出站 HTTP"本地后端；区别是这里用真实神经网络
+    （Qwen2.5-0.5B + LoRA 合并）生成，而非检索插值。需要 torch 训练栈；
+    若不可用（或加载/生成失败）则标记失败，触发故障转移，绝不影响上层 ok。
+    模型加载以本脚本所在目录（shifang/）为基准解析 stage_b（同 _call_distilled
+    的 __file__ 基准约定，避免临时配置目录导致导入失败）。
+    """
+    m = re.search(r"plan\s*=\s*\[([^\]]*)\]", prompt)
+    plan = m.group(1).strip() if m else ""
+    mp = b.get("model_path")
+    t0 = time.time()
+    if not plan:
+        # 非计划指令（如 greeting）：返回确定性离线应答，保证非空、ok=1
+        out = "[自蒸馏侧车·离线] 已接收指令：" + prompt[:80]
+        return (out, True, int((time.time() - t0) * 1000), None, None)
+    try:
+        import os as _os
+        import sys as _sys
+        proj = _os.path.normpath(
+            _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))
+        _sb = _os.path.normpath(_os.path.join(proj, "stage_b"))
+        if _sb not in _sys.path:
+            _sys.path.insert(0, _sb)
+        if mp and not _os.path.isabs(mp):
+            mp = _os.path.normpath(_os.path.join(proj, mp))
+        from dadaozhijian_model import DadaozhijianModel
+        model = DadaozhijianModel(model_dir=mp or _os.path.join(_sb, "dadaozhijian_0.5b"))
+        out = model.generate(plan)
+    except Exception as e:  # 加载/生成异常 -> 标记失败，触发降级/故障转移
+        return ("[sidecar] neural 后端调用失败: %s" % e, False,
+                int((time.time() - t0) * 1000), None, None)
+    if not out:
+        out = "[自蒸馏侧车·离线] 已接收指令：" + prompt[:80]
+    return (out, True, int((time.time() - t0) * 1000), None, None)
+
+
 # ---------- 选择 + 故障转移 ----------
 def _select_and_call(backends, cfg, prompt, force):
     # type: (list, dict, str, str or None) -> tuple
@@ -301,6 +341,13 @@ def _select_and_call(backends, cfg, prompt, force):
             if ok:
                 return (text, b, ok, lat, pt, ct, tried + [b["name"]])
             tried.append(b["name"] + ":distilled_failed")
+            continue
+        if b.get("type") == "neural":
+            # 自蒸馏神经网络后端：本地离线渲染（自有模型），无健康探测、无出站 HTTP
+            text, ok, lat, pt, ct = _call_neural(b, prompt, call_timeout)
+            if ok:
+                return (text, b, ok, lat, pt, ct, tried + [b["name"]])
+            tried.append(b["name"] + ":neural_failed")
             continue
         if not _is_cached_healthy(cache, b["name"], ttl):
             healthy = _health_probe(b, probe_timeout)

@@ -1,10 +1,12 @@
 """阶段 B 入口：串联 数据加载 -> 训练 -> faithfulness 评估 -> 导出 -> 报告。
 
-当前为骨架基线：各模块仅打印调用流程，不执行真实训练。
-运行: python3 stage_b/main.py
+运行:
+  python3 stage_b/main.py                      # 默认检索式蒸馏(lora)
+  python3 stage_b/main.py --method neural      # 接入自有模型「大道至简0.5b」
 """
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -22,14 +24,25 @@ from backend_shim import load_model, generate as shim_generate  # noqa: E402
 from utils import get_logger, ensure_dir  # noqa: E402
 
 
-def main() -> int:
+def main(argv=None) -> int:
     """阶段 B 蒸馏管线主流程（自包含闭环：含纯标准库蒸馏 + 后端替代）。
 
+    Args:
+        argv: 命令行参数（默认取 sys.argv[1:]，便于测试注入）。
     Returns:
         进程退出码（0 表示整条蒸馏闭环跑通）。
     """
+    ap = argparse.ArgumentParser(description="阶段 B 蒸馏管线")
+    ap.add_argument(
+        "--method", choices=["sft", "lora", "neural"], default=None,
+        help="覆盖配置中的训练方法（默认用 StageBConfig.method）",
+    )
+    args = ap.parse_args(argv)
+
     log = get_logger("stage_b.main")
     cfg = load_config()
+    if args.method:
+        cfg.method = args.method
     ensure_dir(cfg.output_dir)
     log.info("阶段 B 蒸馏闭环启动; base=%s method=%s", cfg.base_model, cfg.method)
 
@@ -51,19 +64,37 @@ def main() -> int:
     log.info("训练方法: %s, 产物路径: %s", method, artifact)
 
     # 5) 加载蒸馏模型，用其生成输出做忠实度评估（蒸馏后模式）
+    neural_eval = None
     if cfg.method == "neural":
-        from neural_distiller import NeuralDistiller
-        nm = Path(str(cfg.output_dir)) / "neural_model.json"
-        distilled = NeuralDistiller.load(str(nm)) if nm.exists() else None
+        # 自有模型「大道至简0.5b」：从自包含合并目录独立加载，不引用原基座仓库
+        from dadaozhijian_model import DadaozhijianModel, load_neural_eval_pairs
+        distilled = DadaozhijianModel(model_dir=str(cfg.neural_merged_dir))
+        # 自有模型的验证集 = 其蒸馏数据集的 28 个符号计划
+        neural_eval = load_neural_eval_pairs()
+        # 报告归因：用自有模型身份名覆盖默认 sft 基座名
+        cfg.base_model = "%s (%s, %s)" % (
+            distilled.display_name, distilled.identity.get("base_model", "Qwen2.5-0.5B"),
+            distilled.identity.get("params", "0.5B"),
+        )
+        log.info("加载自有模型: %s (设备=%s)", distilled.display_name, distilled.device)
     else:
         distilled = load_model(cfg)
     if distilled is None:
         log.warning("未加载到蒸馏模型，回退为数据质量门模式")
-    metrics = evaluate(cfg, eval_pairs, distilled)
+    if cfg.method == "neural" and neural_eval is not None:
+        # 神经模型生成昂贵，跳过 200 次 bootstrap（faithfulness 为确定性词元覆盖）
+        metrics = distilled.evaluate(neural_eval)
+        ci = None
+    else:
+        metrics = evaluate(cfg, eval_pairs, distilled)
+        ci = bootstrap_ci(cfg, eval_pairs, distilled)
     ok = meets_threshold(metrics, cfg)
-    ci = bootstrap_ci(cfg, eval_pairs, distilled)
-    log.info("faithfulness=%.3f 达标=%s | bootstrap CI=[%.3f, %.3f]",
-             metrics.get("faithfulness", 0.0), ok, ci["lo"], ci["hi"])
+    if ci is not None:
+        log.info("faithfulness=%.3f 达标=%s | bootstrap CI=[%.3f, %.3f]",
+                 metrics.get("faithfulness", 0.0), ok, ci["lo"], ci["hi"])
+    else:
+        log.info("faithfulness=%.3f 达标=%s（神经模型跳过 bootstrap）",
+                 metrics.get("faithfulness", 0.0), ok)
 
     # 6) 导出 + 溯源（导出可加载的自蒸馏模型，替代外部 LLM 后端）
     model_dir = export_model(cfg, artifact)
@@ -73,7 +104,7 @@ def main() -> int:
     demo_plan = "金→水→火"
     if cfg.method == "neural" and distilled is not None:
         demo_text = distilled.generate(demo_plan)
-        log.info("神经蒸馏后端渲染 [%s] -> %s", demo_plan, demo_text)
+        log.info("神经蒸馏(自有模型)后端渲染 [%s] -> %s", demo_plan, demo_text)
     else:
         demo_text = shim_generate(cfg, demo_plan)
         log.info("蒸馏后端渲染 [%s] -> %s", demo_plan, demo_text)

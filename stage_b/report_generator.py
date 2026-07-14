@@ -12,6 +12,17 @@ from config import StageBConfig
 from utils import write_text, ensure_dir
 
 
+def _model_note(cfg: StageBConfig) -> str:
+    """按训练方法给出正确的模型归因说明。"""
+    if cfg.method == "neural":
+        return (
+            "已接入自有模型「大道至简0.5b」"
+            "（DadaozhijianModel 从 dadaozhijian_0.5b/ 独立加载，"
+            "LoRA 已合并入 Qwen2.5-0.5B 基座，无需原基座仓库）。"
+        )
+    return "已接入真实蒸馏模型（RetrievalDistiller）。"
+
+
 def generate(
     cfg: StageBConfig,
     metrics: Dict[str, float],
@@ -76,7 +87,7 @@ def generate(
         "%s"
         "- 结论: %s\n\n"
         "> 说明：faithfulness 为「蒸馏模型输出对符号化计划的确定性词元覆盖」指标"
-        "（纯标准库、无黑箱、可溯源），已接入真实蒸馏模型（RetrievalDistiller）；"
+        "（纯标准库、无黑箱、可溯源）。%s"
         "达标即可下线外部 LLM 后端，由自蒸馏小模型替代。\n"
     ) % (
         cfg.base_model,
@@ -96,6 +107,7 @@ def generate(
         coverage,
         ci_line,
         status,
+        _model_note(cfg),
     )
 
     ensure_dir(str(cfg.report_path.parent))

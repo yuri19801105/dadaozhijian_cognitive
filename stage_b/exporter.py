@@ -50,6 +50,17 @@ def export_model(cfg: StageBConfig, artifact: Any) -> Path:
             "  from backend_shim import generate\n"
             "  text = generate(cfg, plan)\n"
         )
+    elif artifact is not None and (Path(str(artifact)) / "model.safetensors").exists():
+        # 自包含神经网络模型（大道至简0.5b）：已是独立部署产物，不重复拷贝 988MB 权重，
+        # 直接指向它；可由 shifang/llm_sidecar.py 的 neural 后端加载，无需原基座仓库。
+        note = (
+            "已导出「大道至简0.5b」自包含神经模型（model.safetensors + 配置 + 身份标记）。\n"
+            "该目录即部署产物，可直接由 shifang/llm_sidecar.py 的 neural 后端加载，"
+            "无需原基座仓库。\n"
+            "路径: %s\n" % artifact
+        )
+        write_text(str(model_dir / "README.md"), "# 神经蒸馏模型导出\n\n" + note)
+        return Path(str(artifact))
     else:
         note = (
             "未找到蒸馏模型产物（trainer 未落盘 distilled_model.json）。\n"

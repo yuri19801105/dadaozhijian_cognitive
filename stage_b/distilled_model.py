@@ -152,29 +152,12 @@ class RetrievalDistiller:
         return d
 
 
-class NeuralDistiller:
-    """预留真实神经网络蒸馏分支（SFT/LoRA）。
+def NeuralDistiller(*args, **kwargs):
+    """真实神经网络蒸馏分支（组合蒸馏 → 自有小模型）。
 
-    接口与 RetrievalDistiller 对齐，真实训练依赖 transformers/peft 训练栈，
-    本环境未安装，故 train / train_torch 抛 NotImplementedError，等待环境就绪
-    后平滑替换 RetrievalDistiller（无需改动上层调用）。
+    惰性委托到 neural_distiller.NeuralDistiller，避免无训练栈时导入 torch 失败
+    （保持离线闭环的 pure-stdlib 路径可 import）。接口与 RetrievalDistiller 对齐
+    （train / generate / save / load / evaluate）。
     """
-
-    def __init__(self, base_model: str = "Qwen3-1.7B", method: str = "lora") -> None:
-        self.base_model = base_model
-        self.method = method
-        self.entries: List[Dict[str, Any]] = []
-
-    def train(self, pairs: List[Dict[str, str]]) -> "NeuralDistiller":
-        """真实训练入口（当前未实现）。"""
-        raise NotImplementedError(
-            "真实神经网络蒸馏需 transformers/peft 训练栈（SFT/LoRA）。"
-            "请安装训练栈后改用 train_torch，或临时使用 RetrievalDistiller。"
-        )
-
-    def train_torch(self, pairs: List[Dict[str, str]]) -> "NeuralDistiller":
-        """SFT/LoRA 训练（预留分支，未实现）。"""
-        raise NotImplementedError(
-            "真实 SFT/LoRA 训练需 transformers/peft；当前为预留分支，"
-            "待训练栈就绪后实现。"
-        )
+    from neural_distiller import NeuralDistiller as _RealNeuralDistiller
+    return _RealNeuralDistiller(*args, **kwargs)

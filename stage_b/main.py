@@ -51,7 +51,12 @@ def main() -> int:
     log.info("训练方法: %s, 产物路径: %s", method, artifact)
 
     # 5) 加载蒸馏模型，用其生成输出做忠实度评估（蒸馏后模式）
-    distilled = load_model(cfg)
+    if cfg.method == "neural":
+        from neural_distiller import NeuralDistiller
+        nm = Path(str(cfg.output_dir)) / "neural_model.json"
+        distilled = NeuralDistiller.load(str(nm)) if nm.exists() else None
+    else:
+        distilled = load_model(cfg)
     if distilled is None:
         log.warning("未加载到蒸馏模型，回退为数据质量门模式")
     metrics = evaluate(cfg, eval_pairs, distilled)
@@ -66,8 +71,12 @@ def main() -> int:
 
     # 7) 后端替代演示：用蒸馏模型（而非 Ollama）渲染一个符号计划
     demo_plan = "金→水→火"
-    demo_text = shim_generate(cfg, demo_plan)
-    log.info("蒸馏后端渲染 [%s] -> %s", demo_plan, demo_text)
+    if cfg.method == "neural" and distilled is not None:
+        demo_text = distilled.generate(demo_plan)
+        log.info("神经蒸馏后端渲染 [%s] -> %s", demo_plan, demo_text)
+    else:
+        demo_text = shim_generate(cfg, demo_plan)
+        log.info("蒸馏后端渲染 [%s] -> %s", demo_plan, demo_text)
 
     # 8) 报告
     stats = summarize(cfg)

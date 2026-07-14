@@ -18,7 +18,7 @@ class StageBConfig:
         ledger_sidecar: 侧车 ledger 路径（主训练对：plan -> response）。
         ledger_lineage: 血缘 ledger 路径（溯源：trace + backfill）。
         base_model: 蒸馏基座（按规划用 Qwen3-1.7B）。
-        method: 训练方法，'sft' 或 'lora'。
+        method: 训练方法，'sft' / 'lora'（纯标准库检索蒸馏，默认）或 'neural'（真实 LoRA 蒸馏分支）。
         lora_rank: LoRA 秩（method='lora' 时生效）。
         max_epochs: 训练轮数。
         learning_rate: 学习率。
@@ -36,6 +36,10 @@ class StageBConfig:
     lora_rank: int = 16
     max_epochs: int = 3
     learning_rate: float = 2.0e-4
+    # 神经蒸馏分支（method='neural' 时生效）
+    neural_base_model: str = "Qwen2.5-0.5B-Instruct"
+    neural_gate: float = 1.0
+    neural_max_seq_length: int = 512
     faithfulness_threshold: float = 0.95
     eval_ratio: float = 0.1
     eval_pairs_min: int = 30

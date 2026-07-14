@@ -20,6 +20,9 @@ shifang/ledger/.health_cache.json
 # === stage_b 生成产物（可重生成，非源码）===
 stage_b/__pycache__/
 stage_b/artifacts/
+# 神经蒸馏：训练产物（权重 ~35MB，本地/HF 管理，不进主仓）
+stage_b/neural_adapter/
+stage_b/neural_train.log
 
 # === Scratch / OS ===
 .scratch/

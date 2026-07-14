@@ -128,20 +128,18 @@ class RetrievalDistillerTest(unittest.TestCase):
         self.assertAlmostEqual(m["faithfulness"], 1.0, places=4)
 
 
-class NeuralDistillerReservedTest(unittest.TestCase):
-    def test_train_raises_not_implemented(self):
-        nd = NeuralDistiller(base_model="Qwen3-1.7B", method="lora")
-        with self.assertRaises(NotImplementedError):
-            nd.train([
-                {"plan": "水→木→火", "response": "x", "call_id": "a"},
-            ])
+class NeuralDistillerInterfaceTest(unittest.TestCase):
+    def test_constructable_and_delegates(self):
+        nd = NeuralDistiller(base_model="Qwen2.5-0.5B-Instruct", method="lora")
+        # 惰性委托：实例即 neural_distiller.NeuralDistiller
+        self.assertEqual(nd.base_model, "Qwen2.5-0.5B-Instruct")
+        self.assertEqual(nd.method, "lora")
 
-    def test_train_torch_raises_not_implemented(self):
-        nd = NeuralDistiller(base_model="Qwen3-1.7B", method="lora")
-        with self.assertRaises(NotImplementedError):
-            nd.train_torch([
-                {"plan": "水→木→火", "response": "x", "call_id": "a"},
-            ])
+    def test_train_without_torch_raises_clear_error(self):
+        nd = NeuralDistiller(base_model="Qwen2.5-0.5B-Instruct")
+        # 无训练栈时给出清晰 RuntimeError（而非 NotImplementedError）
+        with self.assertRaises(RuntimeError):
+            nd.train("nonexistent_dataset.jsonl", ".")
 
 
 class TrainerExportClosureTest(unittest.TestCase):

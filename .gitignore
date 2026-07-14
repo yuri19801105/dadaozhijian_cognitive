@@ -23,6 +23,11 @@ stage_b/artifacts/
 # 神经蒸馏：训练产物（权重 ~35MB，本地/HF 管理，不进主仓）
 stage_b/neural_adapter/
 stage_b/neural_train.log
+# 神经蒸馏：合并后的自有模型「大道至简0.5b」——仅排除大权重文件，
+# 保留模型卡/身份/配置纳入版本管理（权重由 merge_and_eval.py 重新生成）
+stage_b/dadaozhijian_0.5b/model.safetensors
+stage_b/dadaozhijian_0.5b/*.safetensors
+stage_b/merge_eval.log
 
 # === Scratch / OS ===
 .scratch/

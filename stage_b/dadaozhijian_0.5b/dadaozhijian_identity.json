@@ -1,0 +1,10 @@
+{
+  "model_id": "dadaozhijian-0.5b",
+  "display_name": "大道至简0.5b",
+  "base_model": "Qwen/Qwen2.5-0.5B",
+  "method": "LoRA 蒸馏（Orca 式序列级 + 推理链 SeqKD，由 RetrievalDistiller 计划符号闸门过滤）",
+  "merged_from": "neural_adapter/adapter",
+  "params": "0.5B",
+  "note": "独立 checkpoint：LoRA 已合并入基座，无需原基座仓库即可加载。",
+  "created_by": "stage_b/merge_and_eval.py"
+}

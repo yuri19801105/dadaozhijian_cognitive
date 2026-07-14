@@ -23,6 +23,7 @@
 
 import os
 import sys
+import re
 import json
 import time
 import uuid
@@ -231,6 +232,47 @@ def _call_backend(b, prompt, timeout):
                 int((time.time() - t0) * 1000), None, None)
 
 
+# ---------- 自蒸馏后端（彻底脱离外部 LLM 端点） ----------
+def _call_distilled(b, prompt, timeout):
+    # type: (dict, str, float) -> tuple
+    """本地自蒸馏模型后端：经 backend_shim 离线渲染符号计划，零出站 HTTP。
+
+    复用现有 Mojo→python 子进程桥（shifang_llm_call），不依赖 Ollama/vLLM/llama.cpp
+    等任何外部 LLM 端点。model_path 相对项目根目录解析（绝对路径则直接用）。
+    """
+    m = re.search(r"plan\s*=\s*\[([^\]]*)\]", prompt)
+    plan = m.group(1).strip() if m else ""
+    mp = b.get("model_path")
+    t0 = time.time()
+    out = ""
+    try:
+        import os as _os
+        import sys as _sys
+        # 定位 stage_b：以本脚本所在目录（shifang/）为基准，上一级即项目根，
+        # 不依赖配置文件位置（配置文件可能位于临时目录）。
+        proj = _os.path.normpath(
+            _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".."))
+        _sb = _os.path.normpath(_os.path.join(proj, "stage_b"))
+        if _sb not in _sys.path:
+            _sys.path.insert(0, _sb)
+        if mp:
+            if not _os.path.isabs(mp):
+                mp = _os.path.normpath(_os.path.join(proj, mp))
+            from distilled_model import RetrievalDistiller
+            out = RetrievalDistiller.load(mp).generate(plan) if plan else ""
+        else:
+            from config import load_config
+            from backend_shim import generate as _shim_generate
+            out = _shim_generate(load_config(), plan) if plan else ""
+    except Exception as e:  # 加载/生成异常 -> 标记失败，触发降级/故障转移
+        return ("[sidecar] distilled 后端调用失败: %s" % e, False,
+                int((time.time() - t0) * 1000), None, None)
+    if not out:
+        # 非计划指令（如 greeting）：返回确定性离线应答，保证非空、ok=1
+        out = "[自蒸馏侧车·离线] 已接收指令：" + prompt[:80]
+    return (out, True, int((time.time() - t0) * 1000), None, None)
+
+
 # ---------- 选择 + 故障转移 ----------
 def _select_and_call(backends, cfg, prompt, force):
     # type: (list, dict, str, str or None) -> tuple
@@ -253,6 +295,13 @@ def _select_and_call(backends, cfg, prompt, force):
 
     tried = []  # type: list
     for b in ordered:
+        if b.get("type") == "distilled":
+            # 自蒸馏后端：本地离线渲染，无健康探测、无出站 HTTP
+            text, ok, lat, pt, ct = _call_distilled(b, prompt, call_timeout)
+            if ok:
+                return (text, b, ok, lat, pt, ct, tried + [b["name"]])
+            tried.append(b["name"] + ":distilled_failed")
+            continue
         if not _is_cached_healthy(cache, b["name"], ttl):
             healthy = _health_probe(b, probe_timeout)
             _mark_health(cache, b["name"], healthy, cache_path)

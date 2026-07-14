@@ -23,6 +23,8 @@ class StageBConfig:
         max_epochs: 训练轮数。
         learning_rate: 学习率。
         faithfulness_threshold: faithfulness 达标阈值（0~1），低于则不允许下线外部模型。
+        eval_ratio: 验证集占比（默认 0.1）。
+        eval_pairs_min: 验证集最小条数下限（保证评估统计稳健，默认 30）。
         output_dir: 蒸馏产物输出目录。
         report_path: 评估报告路径。
     """
@@ -35,6 +37,8 @@ class StageBConfig:
     max_epochs: int = 3
     learning_rate: float = 2.0e-4
     faithfulness_threshold: float = 0.95
+    eval_ratio: float = 0.1
+    eval_pairs_min: int = 30
     output_dir: Optional[Path] = None
     report_path: Optional[Path] = None
 

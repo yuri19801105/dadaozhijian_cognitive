@@ -1,7 +1,7 @@
 {
-  "version": 3,
-  "default_backend": "qwen3-4b-mlx",
-  "failover_order": ["phi-4-mini", "qwen3-4b"],
+  "version": 4,
+  "default_backend": "distilled",
+  "failover_order": ["qwen3-4b-mlx", "phi-4-mini", "qwen3-4b"],
   "ledger_path": "shifang/ledger/sidecar_calls.jsonl",
   "health_cache_path": "shifang/ledger/.health_cache.json",
   "health_check": {
@@ -11,6 +11,14 @@
   },
   "call_timeout_sec": 120.0,
   "backends": [
+    {
+      "name": "distilled",
+      "type": "distilled",
+      "interface": "distilled",
+      "model_path": "stage_b/artifacts/model/distilled_model.json",
+      "temperature": 0.0,
+      "max_tokens": 512
+    },
     {
       "name": "qwen3-4b-mlx",
       "type": "ollama",

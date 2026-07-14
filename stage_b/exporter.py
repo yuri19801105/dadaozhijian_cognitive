@@ -17,13 +17,17 @@ from typing import Any, Dict
 
 from config import StageBConfig
 from utils import ensure_dir, write_text
+from distilled_model import RetrievalDistiller, DEFAULT_MODEL_FILENAME
+from pathlib import Path
+from typing import Any
 
 
 def export_model(cfg: StageBConfig, artifact: Any) -> Path:
     """导出蒸馏模型为部署就绪格式，返回模型目录。
 
-    真实模型导出（Ollama Modelfile / GGUF 等）依赖训练栈，本环境未安装，
-    故创建产物目录并写入部署就绪占位说明，接口与返回类型保持不变。
+    若 trainer 已落盘自包含蒸馏模型（distilled_model.json），则将其导出为
+    可加载的单一小模型（可作 Ollama 后端替代）；否则写入占位说明。接口与
+    返回类型保持不变。
 
     Args:
         cfg: 阶段 B 配置（output_dir 等）。
@@ -32,13 +36,26 @@ def export_model(cfg: StageBConfig, artifact: Any) -> Path:
         导出模型目录路径。
     """
     model_dir = ensure_dir(str(cfg.output_dir / "model"))
-    placeholder = (
-        "# 蒸馏模型导出占位\n\n"
-        "真实导出需 transformers/peft 训练栈（SFT/LoRA -> GGUF/Modelfile）。\n"
-        "训练产物元数据见同目录 ../checkpoint 的 provenance.json。\n"
-        "达标后此处将生成可部署的单一小模型，并替换外部 LLM 后端。\n"
-    )
-    write_text(str(model_dir / "README.md"), placeholder)
+    src = None
+    if artifact is not None:
+        cand = Path(str(artifact)) / DEFAULT_MODEL_FILENAME
+        if cand.exists():
+            src = cand
+    if src is not None:
+        loaded = RetrievalDistiller.load(str(src))
+        loaded.save(str(model_dir / DEFAULT_MODEL_FILENAME))
+        note = (
+            "已导出自包含、可加载的检索式蒸馏模型（distilled_model.json）。\n"
+            "该模型纯标准库、无黑箱、可溯源，可作为外部 LLM 后端（Ollama）的替代：\n"
+            "  from backend_shim import generate\n"
+            "  text = generate(cfg, plan)\n"
+        )
+    else:
+        note = (
+            "未找到蒸馏模型产物（trainer 未落盘 distilled_model.json）。\n"
+            "请先运行 trainer.train 生成自蒸馏模型，再执行导出。\n"
+        )
+    write_text(str(model_dir / "README.md"), "# 蒸馏模型导出\n\n" + note)
     return model_dir
 
 

@@ -16,6 +16,7 @@ def generate(
     cfg: StageBConfig,
     metrics: Dict[str, float],
     stats: Dict[str, Any],
+    ci: Dict[str, float] = None,
 ) -> Path:
     """生成阶段 B 评估报告（Markdown）。
 
@@ -24,6 +25,7 @@ def generate(
         metrics: faithfulness 评估指标（含 faithfulness / coverage / n）。
         stats: ledger 汇总统计（含 counts / ok / degraded / phase_dist /
                backends / degraded_rate）。
+        ci: 可选 bootstrap 置信区间（含 lo / hi / mean / n）。
     Returns:
         报告文件路径。
     """
@@ -47,6 +49,13 @@ def generate(
     ) or "- (无)"
 
     status = "✅ 达标（可进入下线外部模型流程）" if passed else "⚠️ 未达标（保持外部后端）"
+    ci_line = ""
+    if ci:
+        ci_line = (
+            "- faithfulness bootstrap 95%% 置信区间: **[%.3f, %.3f]**"
+            "（重采样 %d 次，mean=%.3f）\n"
+            % (ci.get("lo", 0.0), ci.get("hi", 0.0), int(ci.get("n", 0) or 0), ci.get("mean", 0.0))
+        )
 
     md = (
         "# 阶段 B 蒸馏管线评估报告\n\n"
@@ -64,10 +73,11 @@ def generate(
         "- 验证对数量: %d\n"
         "- faithfulness（计划词元覆盖率）: **%.3f**\n"
         "- coverage（有效覆盖比例）: %.3f\n"
+        "%s"
         "- 结论: %s\n\n"
-        "> 说明：当前 faithfulness 为「训练数据（ledger）对符号计划词元的"
-        "确定性覆盖代理指标」，用于蒸馏前数据质量门；接入真实蒸馏模型后"
-        "可替换为模型输出对计划的忠实度比对。\n"
+        "> 说明：faithfulness 为「蒸馏模型输出对符号化计划的确定性词元覆盖」指标"
+        "（纯标准库、无黑箱、可溯源），已接入真实蒸馏模型（RetrievalDistiller）；"
+        "达标即可下线外部 LLM 后端，由自蒸馏小模型替代。\n"
     ) % (
         cfg.base_model,
         cfg.method,
@@ -84,6 +94,7 @@ def generate(
         n_eval,
         faith,
         coverage,
+        ci_line,
         status,
     )
 

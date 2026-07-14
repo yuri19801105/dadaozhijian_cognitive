@@ -145,20 +145,24 @@ def load_lineage(cfg: StageBConfig) -> List[Dict[str, Any]]:
 
 
 def split_train_eval(
-    pairs: List[Dict[str, str]], eval_ratio: float = 0.1
+    pairs: List[Dict[str, str]], eval_ratio: float = 0.1, eval_pairs_min: int = 0
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
     """按比例切分训练集 / 验证集（确定性，按索引）。
 
     Args:
         pairs: 全部训练对。
         eval_ratio: 验证集占比（默认 0.1）。
+        eval_pairs_min: 验证集最小条数下限；当按比例算出的值低于此值时
+            提高到该下限（保证评估统计稳健），但至少保留 1 条训练对。
     Returns:
         (train_pairs, eval_pairs) 二元组。
     """
     if not pairs:
         return ([], [])
     n_eval = int(round(len(pairs) * float(eval_ratio)))
-    n_eval = max(0, min(n_eval, len(pairs)))
+    n_eval = max(n_eval, int(eval_pairs_min))
+    # 至少保留 1 条训练对，且不超过总数
+    n_eval = max(0, min(n_eval, len(pairs) - 1))
     eval_pairs = pairs[:n_eval]
     train_pairs = pairs[n_eval:]
     return (train_pairs, eval_pairs)
